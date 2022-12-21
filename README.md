@@ -1,20 +1,30 @@
-# flume-parent
+# flume
 flume 二次开发，对EmbeddedAgent的简易改造，动态控制agent，实现启动、关闭等功能
 
-##1、用途
-###1.1、开发自定义的Source或Sink时，无法本地调试
+## 1、用途
+
+### 1.1、本地调试
+
 ```aidl
-    对flume不是特别熟悉的开发者，都没有办法一次开发完Source或Sink，改造完后方便本地在调试
+对flume不是特别熟悉的开发者，都没有办法一次开发完Source或Sink，改造完后方便本地在调试
 ```
-###1.2、利用Flume，开发一个ETL工具
+### 1.2、开发ETL工具
+
 ```aidl
-    可开发ETL工具的好处是有具备事务的Channel，不会造成数据丢失，但如果要实现多种类型，有较大的开发量
+可开发ETL工具的好处是有具备事务的Channel，不会造成数据丢失，但如果要实现多种类型，有较大的开发量，可实现ETL功能
 ```
-##2、模块介绍
-###2.1、flume-engine
-flume-engine只是不可运行的jar包，要是其可以独立运行，添加启动类即可，或被依赖于其他可运行包中
-####2.1.1、代码说明
-#####1、com.softwarevax.flume.agent.embedded
+## 2、模块介绍
+
+### 2.1、flume-engine
+
+flume-engine是不可运行的jar包，要是其可以独立运行，添加启动类即可，或被依赖于其他可运行包中
+
+#### 2.1.1、代码说明
+
+com.softwarevax.flume.agent包下
+
+##### 1、embedded
+
 ```aidl
     改造的EmbeddedAgent，可支持多Souece，Sink。原先的EmbeddedAgent，Source、Sink都只支持一个。若需功能如同命令行启动搬强大，需要对
 EmbeddedAgentConfiguration.configure(String name, Map<String, String> props);
@@ -22,48 +32,59 @@ EmbeddedAgentConfiguration.configure(String name, Map<String, String> props);
     Source、Interceptor、Channel、Processor、Sink都是通过该方法的返回属性创建而来，详见：
 MaterializedConfiguration conf = this.configurationProvider.get(this.name, properties);
 ```
-#####2、com.softwarevax.flume.agent.entity
+##### 2、entity
+
 ```aidl
     通过传入实体的方式，解析成EmbeddedAgentConfiguration.configure(String name, Map<String, String> props)
 方法的入参形式，使其能正常解析，该包都是些Source、Interceptor、Channel、Processor、Sink的载体。
 ```
-####2.1.2、agent启动和关闭
+#### 2.1.2、操作agent
+
 ```aidl
     创建一个AgentManager实体，可以提交、关闭agent
 ```
-###2.2、flume-client
+### 2.2、flume-client
+
 ```aidl
     web应用，用来提供agent启动、关闭的接口。可考虑新增一个类似网关的模块，agent都提交通过到网关模块，网关模块配置一些策略，
 决定提交到哪个flume-client中运行，如负载均衡策略。
 ```
-###2.2、flume-api
+### 2.2、flume-api
+
 ```aidl
     含所有开发的Source、Interceptor、Sink，所有的拦截器均放在api-interceptor-flume模块，Souce和Sink都新建一个模块
 ```
-##3、自定义开发
+## 3、自定义开发
+
 > Source、Interceptor、Channel、Processor、Sink暂且都成为组件
-###3.1、Configurable
+### 3.1、Configurable
+
 ```aidl
-    实现了Configurable接口的组件，在调用EmbeddedAgent.configure(Map<String, String> configure)时就会回调接口中的唯一方法，
+
+实现了Configurable接口的组件，在调用EmbeddedAgent.configure(Map<String, String> configure)时就会回调接口中的唯一方法，
 不需要等到调用EmbeddedAgent.start();
 ```
-###3.2、Source
+### 3.2、Source
+
 ```aidl
     Source分为PollableSource和EventDrivenSource，关系数据库，还有消息中间件（RocketMQ、Kafka），基本都是PollableSource类型，
 RabbitMQ是EventDrivenSource类型的，具体实现哪种Source，取决于获取数据的方式。PollableSource类型的process()方法，如果返回
 Status.BACKOFF，经过getBackOffSleepIncrement()时间后会再次调用，如果返回Status.READY，执行完之后，就会再次进入process()方法。
 ```
-####3.3、Interceptor
+### 3.3、Interceptor
+
 ```aidl
     Interceptor是依附在Source上的，配置的拦截器，要指是哪个定Source的拦截器。实现接口Interceptor即可，若需要配置参数，再实现接口
 Configurable，在拦截器上，可以做一个简单处理，比如碰到字符串为null，将他改为""。
 ```
-###3.4、Channel
+### 3.4、Channel
+
 ```aidl
     transactionCapacity默认为100，如果一次提交超过100条数据，则会提交失败。capacity是Channel的容量，Channel有file、menory等类型，
 详见ChannelType。
 ```
-###3.5、Sink
+### 3.5、Sink
+
 ```aidl
 Sink需要开启事务，防止数据丢失。
 Transaction transaction = channel.getTransaction();
@@ -71,12 +92,14 @@ transaction.begin();
 transaction.commit();
 transaction.close();
 ```
-##3、agnet启动和关闭例子
+## 4、agent启动和关闭例子
+
 将t_user的数据，复制到t_user_copy表中
 
-3.1、启动flume-client
+### 4.1、启动flume-client
 
-3.2、调用启动接口
+### 4.2、调用启动接口
+
 ```aidl
 http://localhost:8080/start
 
@@ -141,8 +164,10 @@ Content-Type: application/json
     }
 }
 ```
-3.3、查看flume agent的启动的日志
+### 4.3、查看flume agent的启动的日志
+
 HeadTagInterceptor是默认的拦截器，可以将名字设置为interceptor_0，覆盖默认的拦截器
+
 ```aidl
 mysql.channels=mysql-channel
 mysql.channels.mysql-channel.capacity=1000000
@@ -174,7 +199,8 @@ mysql.sources.r1.type=com.softwarevax.flume.source.mysql.MySQLSource
 mysql.sources.r1.url=jdbc:mysql://localhost:3306/optimize?characterEncoding=utf-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
 mysql.sources.r1.username=root
 ```
-3.4、查看flume agent的关闭打印的日志
+### 4.4、查看flume agent的关闭打印的日志
+
 ```aidl
 Component type: CHANNEL, name: mysql-channel stopped
 Shutdown Metric for type: CHANNEL, name: mysql-channel. channel.start.time == 1671597763413
@@ -187,7 +213,8 @@ Shutdown Metric for type: CHANNEL, name: mysql-channel. channel.event.take.attem
 Shutdown Metric for type: CHANNEL, name: mysql-channel. channel.event.take.success == 119000
 Source runner interrupted. Exiting
 ```
-3.5、属性方式启动
+### 4.5、属性方式启动
+
 ```aidl
 Map<String, String> properties = new HashMap<>();
 // source
@@ -236,7 +263,8 @@ try {
 } catch (final Exception ex) {
 }
 ```
-3.6、实体方式启动
+### 4.6、实体方式启动
+
 ```aidl
 AgentEntity entity = new AgentEntity("mysql");
 
