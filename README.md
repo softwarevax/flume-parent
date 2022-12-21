@@ -1,5 +1,5 @@
 # flume
-flume 二次开发，对EmbeddedAgent的简易改造，动态控制agent，实现启动、关闭等功能
+flume 二次开发，对EmbeddedAgent的简易改造，动态控制agent，实现启动、关闭等功能。
 
 ## 1、用途
 
@@ -56,7 +56,7 @@ MaterializedConfiguration conf = this.configurationProvider.get(this.name, prope
 ```
 ## 3、自定义开发
 
-> Source、Interceptor、Channel、Processor、Sink暂且都成为组件
+> Source、Interceptor、Channel、Processor、Sink暂且都称为组件
 ### 3.1、Configurable
 
 ```aidl
@@ -91,6 +91,7 @@ Transaction transaction = channel.getTransaction();
 transaction.begin();
 transaction.commit();
 transaction.close();
+transaction.rollback();
 ```
 ## 4、agent启动和关闭例子
 
